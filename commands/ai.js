@@ -44,11 +44,11 @@ const handleChatResponse = async (senderId, input, pageAccessToken) => {
     const formattedAnsweringMessage = useFontFormatting ? formatResponse(answeringMessage) : answeringMessage;
     await sendMessage(senderId, { text: formattedAnsweringMessage }, pageAccessToken);
 
-    const defaultMessage = `Free GPT / OpenAI
+    const defaultMessage = `OpenAI
 
-━━━━━━━━━━━━━ 
-✅ Answer: ${response}
-━━━━━━━━━━━━━
+━━━━━━━━━━━━━ \n
+\n✅ Answer: ${response}\n
+\n━━━━━━━━━━━━━
 ⏰ Response: ${responseTime}`;
 
     const formattedMessage = useFontFormatting ? formatResponse(defaultMessage) : defaultMessage;
