@@ -47,7 +47,7 @@ const handleChatResponse = async (senderId, input, pageAccessToken) => {
     const defaultMessage = `[🟢] 𝐎𝐩𝐞𝐧𝐀𝐈
 
 ━━━━━━━━━━━━━ 
-\n[🟢] ${response}\n
+\n${response}\n
 ━━━━━━━━━━━━━
 [⏰] ${responseTime}`;
 
