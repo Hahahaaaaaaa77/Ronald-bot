@@ -72,12 +72,12 @@ async function handleMessage(event, pageAccessToken) {
       console.error(`Error executing command "${commandName}":`, error);
       await sendMessage(senderId, { text: `Error executing command "${commandName}". Please try again.` }, pageAccessToken);
     }
-  } else if (commands.has('gpt')) {
-    // Execute the 'gpt' command as a fallback command
+  } else if (commands.has('gpt4')) {
+    // Execute the 'gpt4' command as a fallback command
     try {
-      await commands.get('gpt').execute(senderId, [messageText], pageAccessToken);
+      await commands.get('gpt4').execute(senderId, [messageText], pageAccessToken);
     } catch (error) {
-      console.error("Error executing the 'gpt' command:", error);
+      console.error("Error executing the 'gpt4' command:", error);
       await sendMessage(senderId, { text: 'An error occurred while executing the GPT command.' }, pageAccessToken);
     }
   } else {
