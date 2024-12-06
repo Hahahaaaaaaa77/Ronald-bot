@@ -47,7 +47,7 @@ ${commands.join('\n')}
 ╰─━━━━━━━━━╾─╯
 Chat -help [name] 
 to see command details.
-www.facebook.com/JayCantFinddd
+https://www.facebook.com/SORY.RONALD
 ━━━━━━━━━━━━━━`;
 
     sendMessage(senderId, { text: helpMessage }, pageAccessToken);
