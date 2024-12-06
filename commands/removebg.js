@@ -20,7 +20,7 @@ module.exports = {
 
     try {
       // Fetch the enhanced image from the API
-      const response = await axios.get(`https://api.kenliejugarap.com/bgremoved/?imgurl=${encodeURIComponent(imageUrl)}`);
+      const response = await axios.get(`https://kaiz-apis.gleeze.com/bgremoved/?imgurl=${encodeURIComponent(imageUrl)}`);
       const processedImageURL = response.data.response;
 
       // Send the enhanced image URL back to the user
