@@ -36,19 +36,19 @@ module.exports = {
 
     const commands = commandFiles.map(file => {
       const command = require(path.join(commandsDir, file));
-      return `│ - ${command.name}`;
+      return `│ ✧ ${command.name}`;
     });
 
     const helpMessage = `
-━━━━━━━━━━━━━━
-𝙰𝚟𝚊𝚒𝚕𝚊𝚋𝚕𝚎 𝙲𝚘𝚖𝚖𝚊𝚗𝚍𝚜:
-╭─╼━━━━━━━━╾─╮
+◊━━━━━━━━━━━━◊
+◊ COMMANDES [🛅]◊
+╭─❍「 𝗡𝗢 𝗣𝗥𝗘𝗙𝗜𝗫 」
 ${commands.join('\n')}
-╰─━━━━━━━━━╾─╯
-Chat -help [name] 
+╰─━━━━━━━━━╾─◊
+ 「help」 [name] 
 to see command details.
 https://www.facebook.com/SORY.RONALD
-━━━━━━━━━━━━━━`;
+◊━━━━━━━━━━━━◊`;
 
     sendMessage(senderId, { text: helpMessage }, pageAccessToken);
   }
