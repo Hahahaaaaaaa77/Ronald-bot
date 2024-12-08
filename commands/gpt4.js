@@ -46,10 +46,7 @@ const handleChatResponse = async (senderId, input, pageAccessToken) => {
 
     const defaultMessage = `[🟢] 𝐎𝐩𝐞𝐧𝐀𝐈
 
-━━━━━━━━━━━━━ 
-\n${response}\n
-━━━━━━━━━━━━━
-[⏰] ${responseTime}`;
+\n${response}\n`;
 
     const formattedMessage = useFontFormatting ? formatResponse(defaultMessage) : defaultMessage;
 
