@@ -2,7 +2,7 @@ const axios = require("axios");
 const { sendMessage } = require('../handles/sendMessage');
 
 module.exports = {
-  name: "image",
+  name: "gpt",
   description: "interact with yoru with generate & recognize image",
   author: "Emman Co",
 
