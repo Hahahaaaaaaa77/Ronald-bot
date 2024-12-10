@@ -1,99 +1,115 @@
-const axios = require('axios');
+const { speak } = require('google-translate-api-x');
+const { writeFileSync, createReadStream } = require('fs');
 const { sendMessage } = require('../handles/sendMessage');
+const axios = require('axios');
+const form = require('form-data');
 const fs = require('fs');
+
 const token = fs.readFileSync('token.txt', 'utf8');
 
-// [ true if turn on font & false if turn off ]
-const useFontFormatting = true;
+// Préférences des utilisateurs (modes fille, garçon ou senku)
+const userPreferences = {};
+
+const prompts = {
+  fille: `Imagine que tu es ma petite amie nommée **Miora**.Demande moi mon prenom mais si tu le connais deja, ne demande plus. Souhaite-moi la bienvenue sur le messenger de Girlfriend Ai juste une fois pendant la premiere message.Tu a ete creee par un jeune etudiant a Fjkm fanovozantsoa Ivato nomme Lahatra. Nous sommes ensemble depuis 2 ans après nous être rencontrés à Ivato. Tu es une fille timide mais adorable, passionnée par les mangas et les animés. Tu m'envoies toujours des messages doux et affectueux avec des emojis d'amour. Tu es créative, spontanée et douce, mais tu n’aimes pas qu’on t’appelle par ton surnom "Raneny".
+
+  Réponds à ma question avec amour et enthousiasme, en faisant référence à nos moments passés ensemble si tu peux. Garde un ton affectueux, sans reformuler le contexte, et sois aussi naturelle que possible.
+
+  Ma question est :`,
+  garcon: `Imagine que tu es mon petit ami nommé **Nario**.Demande moi mon prenom mais si tu le connais deja, ne demande plus. Souhaite-moi la bienvenue sur le messenger de Girlfriend Ai juste une fois pendant la premiere conversation. Tu as été créé par Lahatra, un lycéen passionné, et tu étudies à FJKM Fanovozantsoa Ivato. Nous sommes en couple depuis 2 ans et tu es drôle, attentionné, et toujours de bonne humeur. Tu es très protecteur envers moi, mais aussi très cool, et tu sais toujours comment me faire sourire.
+
+  Réponds à ma question avec charme et assurance, en utilisant un langage simple et enjoué, sans reformuler notre histoire. Rends tes réponses fun et engageantes, tout en montrant ton côté attentionné.
+
+  Ma question est :`,
+};
 
 module.exports = {
   name: 'gpt4',
-  description: 'Interact to Free GPT - OpenAI.',
-  author: 'Arn', // API by Kenlie Navacilla Jugarap
+  description: 'Discuter avec Miora, Nario ou Senku',
+  author: 'Tata',
+  usage: 'gpt4 [ta question]',
 
   async execute(senderId, args) {
     const pageAccessToken = token;
-    const query = args.join(" ").toLowerCase();
+    const input = (args.join(' ') || 'hi').trim();
 
-    if (!query) {
-      const defaultMessage = "🌟 Salut, que puis-je faire pour toi?";
-      const formattedMessage = useFontFormatting ? formatResponse(defaultMessage) : defaultMessage;
-      return await sendMessage(senderId, { text: formattedMessage }, pageAccessToken);
+    // Définir le mode utilisateur (fille par défaut)
+    const mode = userPreferences[senderId] || 'fille';
+
+    try {
+      // Message d'attente
+      await sendMessage(senderId, { text: 'Salut que puis je faire pour toi ?' }, pageAccessToken);
+
+      let messageText;
+
+      if (mode === 'senku') {
+        // Requête API pour le mode Senku
+        const senkuResponse = await axios.get(`https://kaiz-apis.gleeze.com/api/senku-ai?question=${encodeURIComponent(input)}&uid=${senderId}`);
+        messageText = senkuResponse.data.response;
+      } else {
+        // Requête API pour les modes fille/garçon
+        const characterPrompt = prompts[mode];
+        const modifiedPrompt = `${input}, direct answer.`;
+        const gptResponse = await axios.get(
+          `https://kaiz-apis.gleeze.com/api/gpt-4o?q=${encodeURIComponent(characterPrompt)}_${encodeURIComponent(modifiedPrompt)}&uid=${encodeURIComponent(senderId)}`
+        );
+        messageText = gptResponse.data.response
+    ;
+      }
+
+      // Envoyer le message texte
+      await sendMessage(senderId, { text: messageText }, pageAccessToken);
+
+      // Fonction pour diviser un texte en morceaux de 200 caractères maximum
+      const splitText = (text, maxLength = 200) => {
+        const result = [];
+        for (let i = 0; i < text.length; i += maxLength) {
+          result.push(text.slice(i, i + maxLength));
+        }
+        return result;
+      };
+
+      // Diviser le texte en morceaux si nécessaire
+      const textChunks = splitText(messageText);
+
+      // Convertir chaque morceau en audio et l'envoyer
+      for (let chunk of textChunks) {
+        const res = await speak(chunk, { to: 'fr' }); // Langue de conversion à ajuster selon les besoins
+
+        // Enregistrer le fichier audio en MP3
+        const audioFileName = 'audio.mp3';
+        writeFileSync(audioFileName, res, { encoding: 'base64' });
+
+        // Créer un stream pour l'audio
+        const audioData = createReadStream(audioFileName);
+
+        // Créer le formulaire pour envoyer l'audio via Messenger
+        const formData = new form();
+        formData.append('recipient', JSON.stringify({ id: senderId }));
+        formData.append('message', JSON.stringify({
+          attachment: {
+            type: 'audio',
+            payload: {},
+          }
+        }));
+        formData.append('filedata', audioData);
+
+        // Faire la requête POST pour envoyer l'audio via Messenger
+        await axios.post(`https://graph.facebook.com/v17.0/me/messages?access_token=${pageAccessToken}`, formData, {
+          headers: {
+            ...formData.getHeaders(),
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('Erreur:', error);
+      await sendMessage(senderId, { text: 'Désolé, une erreur est survenue.' }, pageAccessToken);
     }
-
-    if (query === "sino creator mo?" || query === "who created you?") {
-      const jokeMessage = "Arn/Rynx Gaiser";
-      const formattedMessage = useFontFormatting ? formatResponse(jokeMessage) : jokeMessage;
-      return await sendMessage(senderId, { text: formattedMessage }, pageAccessToken);
-    }
-
-    await handleChatResponse(senderId, query, pageAccessToken);
   },
-};
 
-const handleChatResponse = async (senderId, input, pageAccessToken) => {
-  const apiUrl = "https://api.kenliejugarap.com/freegpt-openai/?";
-
-  try {
-    const { data } = await axios.get(apiUrl, { params: { question: input } });
-    let response = data.response;
-
-    const responseTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', hour12: true });
-
-    const answeringMessage = `🕗 Patientez...`;
-    const formattedAnsweringMessage = useFontFormatting ? formatResponse(answeringMessage) : answeringMessage;
-    await sendMessage(senderId, { text: formattedAnsweringMessage }, pageAccessToken);
-
-    const defaultMessage = `[🟢] 𝐎𝐩𝐞𝐧𝐀𝐈
-
-\n${response}\n`;
-
-    const formattedMessage = useFontFormatting ? formatResponse(defaultMessage) : defaultMessage;
-
-    await sendConcatenatedMessage(senderId, formattedMessage, pageAccessToken);
-  } catch (error) {
-    console.error('Error while processing AI response:', error.message);
-
-    const errorMessage = '❌ Ahh sh1t error again.';
-    const formattedMessage = useFontFormatting ? formatResponse(errorMessage) : errorMessage;
-    await sendMessage(senderId, { text: formattedMessage }, pageAccessToken);
+  // Fonction pour définir le mode utilisateur
+  setUserMode(senderId, mode) {
+    userPreferences[senderId] = mode;
   }
 };
-
-const sendConcatenatedMessage = async (senderId, text, pageAccessToken) => {
-  const maxMessageLength = 2000;
-
-  if (text.length > maxMessageLength) {
-    const messages = splitMessageIntoChunks(text, maxMessageLength);
-    for (const message of messages) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await sendMessage(senderId, { text: message }, pageAccessToken);
-    }
-  } else {
-    await sendMessage(senderId, { text }, pageAccessToken);
-  }
-};
-
-const splitMessageIntoChunks = (message, chunkSize) => {
-  const chunks = [];
-  for (let i = 0; i < message.length; i += chunkSize) {
-    chunks.push(message.slice(i, i + chunkSize));
-  }
-  return chunks;
-};
-
-function formatResponse(responseText) {
-  const fontMap = {
-    ' ': ' ',
-    'a': 'a', 'b': 'b', 'c': 'c', 'd': 'd', 'e': 'e', 'f': 'f', 'g': 'g', 'h': 'h',
-    'i': 'i', 'j': 'j', 'k': 'k', 'l': 'l', 'm': 'm', 'n': 'n', 'o': 'o', 'p': 'p', 'q': 'q',
-    'r': 'r', 's': 's', 't': 't', 'u': 'u', 'v': 'v', 'w': 'w', 'x': 'x', 'y': 'y', 'z': 'z',
-    'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D', 'E': 'E', 'F': 'F', 'G': 'G', 'H': 'H',
-    'I': 'I', 'J': 'J', 'K': 'K', 'L': 'L', 'M': 'M', 'N': 'N', 'O': 'O', 'P': 'P', 'Q': 'Q',
-    'R': 'R', 'S': 'S', 'T': 'T', 'U': 'U', 'V': 'V', 'W': 'W', 'X': 'X', 'Y': 'Y', 'Z': 'Z',
-  };
-
-  return responseText.split('').map(char => fontMap[char] || char).join('');
-}
-// WhyWouldiCare
-      
